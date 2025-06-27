@@ -1,4 +1,5 @@
 import random
+import torch
 from copy import deepcopy
 from collapsi.configs.configs import *
 from collapsi.modules.card import Card
@@ -124,79 +125,7 @@ class GameState:
         self.__init__(num_players=len(self.players))
         return self
 
-    def step(self, agent: Agent):
-        player = self.players[self.current_index]
-
-        # Agent is out of the game, wait for others to finish
-        if not player.active:
-            return
-
-        legal_actions = self.get_player_moves(player)
-        agent.current_legal_actions = legal_actions
-
-        # Agent is active, but does not have any legal moves, they are out!
-        if not legal_actions:
-            player.active = False
-            agent.update_q_table(reward=-1.0, new_state=self, possible_actions=legal_actions)
-            return
-
-        # Agent chooses move
-        action = agent.select_action(self, legal_actions)
-        agent.save_current_state(self)
-        self.make_move(player, action)
-
-        # Reward for surviving another turn
-        agent.update_q_table(reward=1, new_state=self, possible_actions=legal_actions)
-
-        return
-
-def train_q_agent(episodes=1000):
-
-    agent = Agent(name='P1')
-    wins = 0
-    win_counter = []
-
-    for episode in range(episodes):
-        game = GameState(num_players=NUMBER_OF_PLAYERS)
-        game.players[0].name = 'P1'  # agent
-        game.players[1].name = 'P2'  # random
-
-        done = False
-        while not done:
-            game.print_board()
-            current_player = game.players[game.current_index]
-            if current_player.name == 'P1':
-                game.step(agent)
-            else:
-                # Random player
-                moves = game.get_player_moves(current_player)
-                if moves:
-                    game.make_move(current_player, random.choice(moves))
-                else:
-                    current_player.active = False
-
-            # Check end condition
-            alive = [p for p in game.players if p.active]
-            if len(alive) == 1:
-                winner = alive[0].name
-                done = True
-                reward = 10.0 if winner == 'P1' else -10.0
-                agent.update_q_table(reward=reward, new_state=game, possible_actions=agent.current_legal_actions)
-                if winner == 'P1':
-                    wins += 1
-                win_counter.append(wins)
-
-            game.next_player()
-
-        if episode % 10000 == 0:
-            print(f"Episode {episode}: Wins so far = {wins}")
-            print("Q-Table size:", len(agent.q_table))
-
-    print(f"Final win rate: {wins}/{episodes}")
-    return agent, win_counter
-
-def train_dqn_agent(episodes=1000):
-    agent = DQNAgent(state_dim=20, action_dim=16)  # 16 possible tile moves on 4x4
+def train_dqn_agent(agent, episodes=1000):
     wins = 0
     win_counter = []
 
@@ -241,6 +170,7 @@ def train_dqn_agent(episodes=1000):
                     agent.remember(previous_state_vec_start_of_turn, previous_action_idx, AGENT_REWARDS['LOSS'], previous_state_vec_end_of_turn, True)
                     agent.update_model()
                     done = True
+                    win_counter.append(wins)
                     break
 
                 legal_action_indices = [encode_action(r, c) for (r, c) in legal_moves]
@@ -309,19 +239,18 @@ def train_dqn_agent(episodes=1000):
 
 
     print(f"Final win rate: {wins}/{episodes}")
-    return agent, win_counter
+    return win_counter
 
 
-# game = GameState(num_players=2)
-# game.play_game()
+agent = DQNAgent(state_dim=36, action_dim=16) # 16 possible tile moves on 4x4
 
-agent, win_counter = train_dqn_agent(episodes=NUM_ROUNDS)
-# agent, win_counter = train_q_agent(episodes=NUM_ROUNDS)
+if LOAD_DQN_MODEL:
+    agent.model.load_state_dict(torch.load(DQN_MODEL_NAME))
 
-import pickle
-if SAVE_QTABLE:
-    with open(QTABLE_NAME, 'wb') as file:
-        pickle.dump(agent.q_table, file)
+win_counter = train_dqn_agent(agent=agent, episodes=NUM_ROUNDS)
+
+if SAVE_DQN_MODEL:
+    torch.save(agent.model.state_dict(), DQN_MODEL_NAME)
 
 import numpy as np
 if not PRINT_VERBOSE:

@@ -1,94 +1,6 @@
 """
 """
 
-import random
-import pickle
-import numpy as np
-from collections import defaultdict
-from collapsi.configs.configs import *
-from collapsi.utilities.vprint import vprint
-
-# Q-learning constants
-if AGENT_EXPLORING:  
-    epsilon = 0.2  # Exploration rate
-else:
-    epsilon = 0  # Do not explore
-alpha = 0.02  # Learning rate
-gamma = 0.9  # Discount factor
-
-if LOAD_QTABLE:
-    with open(QTABLE_NAME, 'rb') as file:
-        Q_TABLE = pickle.load(file)
-else:
-    Q_TABLE = {}
-
-class Agent:
-    def __init__(self, name):
-        self.name = name
-        self.q_table = Q_TABLE
-        self.current_state = None
-        self.current_action = None
-        self.current_legal_actions = None
-
-    def get_state_key(self, state):
-
-        # TODO: Can I reduce the size of this state space further while still allowing the agent to have a meaningful state to learn from?
-
-        # This is a true representation of the grid, but...
-        # this is in the order of 10^9 states. Way too many!
-        # board_state = tuple((card.value, card.collapsed) for row in state.board for card in row)
-
-        # This is a representation of the grid only with a true/false if the tile is collapsed, but...
-        # this is in the order of ~15 million states, still a lot!
-        board_state  = tuple(tuple(card.collapsed for card in row) for row in state.board)
-
-        player_positions = tuple(p.position for p in state.players)
-        return (board_state, player_positions)
-
-    def select_action(self, state, legal_moves):
-        state_key = self.get_state_key(state)
-
-        best_value = float('-inf')
-        best_actions = []
-        for move in legal_moves:
-            q = self.q_table.get((state_key, move), 0.0)
-            if q > best_value:
-                best_value = q
-                best_actions = [move]
-            elif q == best_value:
-                best_actions.append(move)
-
-        if random.random() < epsilon:
-            action = random.choice(legal_moves)
-        else:
-            action = random.choice(best_actions)
-
-        self.current_action = action
-        self.current_state = state_key  # ← store only state key, not full (state, action)
-        return action
-    
-    def save_current_state(self, state):
-        self.current_state = self.get_state_key(state)
-
-    def update_q_table(self, reward, new_state, possible_actions):
-        new_state_key = self.get_state_key(new_state)
-
-        # Estimate best future reward
-        if possible_actions:
-            best_next_q = max(
-                self.q_table.get((new_state_key, a), 0.0) for a in possible_actions
-            )
-        else:
-            best_next_q = 0.0
-
-        # Update Q-value
-        key = (self.current_state, self.current_action)
-        current_q = self.q_table.get(key, 0.0)
-        self.q_table[key] = (1 - alpha) * current_q + alpha * (reward + gamma * best_next_q)
-
-        vprint(f"Updated Q[{key}] = {self.q_table[key]:.4f}")
-    
-# DQN agent for Collapsi
 
 import torch
 import torch.nn as nn
@@ -96,6 +8,21 @@ import torch.optim as optim
 import random
 import numpy as np
 from collections import deque
+from collapsi.configs.configs import *
+from collapsi.utilities.vprint import vprint
+
+# Q-learning constants
+if AGENT_EXPLORING:  
+    epsilon = 1.0  # Exploration rate
+    epsilon_min = 0.05 # Min exploration rate
+else:
+    # Do not explore
+    epsilon = 0
+    epsilon_min = 0
+
+epsilon_decay=0.99999 # Decay in exploration rate
+gamma = 0.99  # Discount factor
+lr=1e-3 # Learning rate
 
 # --- Neural Network for Q(s) -> Q(a) ---
 class DQN(nn.Module):
@@ -114,7 +41,7 @@ class DQN(nn.Module):
 
 # --- DQN Agent ---
 class DQNAgent:
-    def __init__(self, state_dim=20, action_dim=16, gamma=0.99, epsilon=1.0, epsilon_min=0.05, epsilon_decay=0.99999, lr=1e-3):
+    def __init__(self, state_dim=36, action_dim=16, gamma=gamma, epsilon=epsilon, epsilon_min=epsilon_min, epsilon_decay=epsilon_decay, lr=lr):
         self.model = DQN(state_dim, action_dim)
         self.target_model = DQN(state_dim, action_dim)
         self.target_model.load_state_dict(self.model.state_dict())
@@ -170,9 +97,15 @@ class DQNAgent:
 
 # --- Utility to encode the game state into a vector ---
 def encode_state(state, agent_name):
-    board = state.board
-    collapsed = [1.0 if card.collapsed else 0.0 for row in board for card in row]
-    
+    # Encode board: each tile = [card_value, collapsed_flag]
+    flat_board = []
+    for row in state.board:
+        for card in row:
+            card_val = CARD_TO_NUM[card.value]
+            collapsed = 1.0 if card.collapsed else 0.0
+            flat_board.extend([card_val / 4.0, collapsed])  # Normalize card value
+
+    # Encode player positions
     agent_pos = None
     enemy_pos = None
     for p in state.players:
@@ -181,11 +114,10 @@ def encode_state(state, agent_name):
         else:
             enemy_pos = p.position
 
-    # Normalize positions to [0, 1]
     agent_vec = [agent_pos[0] / 4.0, agent_pos[1] / 4.0]
     enemy_vec = [enemy_pos[0] / 4.0, enemy_pos[1] / 4.0]
 
-    return np.array(collapsed + agent_vec + enemy_vec, dtype=np.float32)  # length 20
+    return np.array(flat_board + agent_vec + enemy_vec, dtype=np.float32) # 36 dimension
 
 # --- Utility to decode action index to (row, col) ---
 def decode_action(index):
