@@ -114,7 +114,7 @@ class DQN(nn.Module):
 
 # --- DQN Agent ---
 class DQNAgent:
-    def __init__(self, state_dim=20, action_dim=16, gamma=0.99, epsilon=1.0, epsilon_min=0.05, epsilon_decay=0.995, lr=1e-3):
+    def __init__(self, state_dim=20, action_dim=16, gamma=0.99, epsilon=1.0, epsilon_min=0.05, epsilon_decay=0.99999, lr=1e-3):
         self.model = DQN(state_dim, action_dim)
         self.target_model = DQN(state_dim, action_dim)
         self.target_model.load_state_dict(self.model.state_dict())
