@@ -20,8 +20,8 @@ else:
     epsilon = 0
     epsilon_min = 0
 
-epsilon_decay=0.99999 # Decay in exploration rate
-gamma = 0.99  # Discount factor
+epsilon_decay=0.999999 # Decay in exploration rate
+gamma = 0.95  # Discount factor
 lr=1e-3 # Learning rate
 
 # --- Neural Network for Q(s) -> Q(a) ---
@@ -101,9 +101,12 @@ def encode_state(state, agent_name):
     flat_board = []
     for row in state.board:
         for card in row:
-            card_val = CARD_TO_NUM[card.value]
-            collapsed = 1.0 if card.collapsed else 0.0
-            flat_board.extend([card_val / 4.0, collapsed])  # Normalize card value
+            # card_val = CARD_NUMERIC[card.value]
+            # collapsed = 1.0 if card.collapsed else 0.0
+            # flat_board.extend([card_val / 4.0, collapsed])  # Normalize card value
+            card_val = CARD_TO_NUM_NORMALIZED[card.value]
+            collapsed = 0.5 if card.collapsed else -0.5 # Centered around 0 for activation functions
+            flat_board.extend([card_val, collapsed])
 
     # Encode player positions
     agent_pos = None
@@ -114,8 +117,12 @@ def encode_state(state, agent_name):
         else:
             enemy_pos = p.position
 
-    agent_vec = [agent_pos[0] / 4.0, agent_pos[1] / 4.0]
-    enemy_vec = [enemy_pos[0] / 4.0, enemy_pos[1] / 4.0]
+    # agent_vec = [agent_pos[0] / 4.0, agent_pos[1] / 4.0]
+    # enemy_vec = [enemy_pos[0] / 4.0, enemy_pos[1] / 4.0]
+
+    # Position: center from [0,4] --> [-0.5, 0.5]
+    agent_vec = [(agent_pos[0]-2) / 4.0, (agent_pos[1]-2) / 4.0]
+    enemy_vec = [(enemy_pos[0]-2) / 4.0, (enemy_pos[1]-2) / 4.0]
 
     return np.array(flat_board + agent_vec + enemy_vec, dtype=np.float32) # 36 dimension
 

@@ -65,3 +65,5 @@ Playing this agent against the random opponent, I was able to achieve a 56% win 
 This may not seem that impressive, but I was finally noticing a trend where the agent's win rate would, on average, increase instead of flatlining around 50-51%.
 
 So I am optimistic that with more training and tweaking, I can achieve better results...
+
+But, after running 500,000 games, it seemed to actually stabilize at a 55.6% win rate.
