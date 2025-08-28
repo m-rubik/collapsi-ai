@@ -24,8 +24,8 @@ So, to try to get better results, I needed to either:
 1) Reduce the number of possible states by simplifying what goes into the state, or
 2) Change away from tabular q-learning to a new approach that isn't discrete (Deep Q-Learning)
 
-### Adaption 1: Reduce state space
-Instead of tracking every card value, what if we just tracked whether each card is collapsed or not?
+## Adaption 1: Reduce state space
+Instead of tracking every card value, what if I just tracked whether each card is collapsed or not?
 
 If the board is 4×4 = 16 cards, and each card can be collapsed (True) or not (False), then:
 
@@ -53,7 +53,7 @@ So the effective state space is likely less, but let's assume worst-case.
 
 Even with this reduced state space, I still struggled to beat a 51% win rate.
 
-### Adaption 2: DQN
+## Adaption 2: DQN
 
 I added a new, different agent. A DQN-based agent.
 This agent uses a 3-layer MLP to accomplish DQN Q-learning.
@@ -67,3 +67,9 @@ This may not seem that impressive, but I was finally noticing a trend where the 
 So I am optimistic that with more training and tweaking, I can achieve better results...
 
 But, after running 500,000 games, it seemed to actually stabilize at a 55.6% win rate.
+
+### Tweak: Prioritized Replay Buffer (PRB)
+
+Without PRB, I would randomly select a batch of samples from the buffer to train on.
+
+Instead of randomly selecting the samples, I implemented a prioritized replay buffer, which will attempts to pull samples that it thinks it can learn the most from.

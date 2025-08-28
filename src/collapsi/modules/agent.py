@@ -20,7 +20,7 @@ else:
     epsilon = 0
     epsilon_min = 0
 
-epsilon_decay=0.999999 # Decay in exploration rate
+epsilon_decay=0.99999 # Decay in exploration rate
 gamma = 0.95  # Discount factor
 lr=1e-3 # Learning rate
 
@@ -29,15 +29,54 @@ class DQN(nn.Module):
     def __init__(self, state_dim, action_dim):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(state_dim, 128),
+            nn.Linear(state_dim, 256),
             nn.ReLU(),
-            nn.Linear(128, 64),
+            nn.Linear(256, 128),
             nn.ReLU(),
-            nn.Linear(64, action_dim)
+            nn.Linear(128, action_dim)
         )
 
     def forward(self, x):
         return self.net(x)
+
+# --- Prioritized Replay Buffer ---
+class PrioritizedReplayBuffer:
+    def __init__(self, capacity, alpha=0.6):
+        self.capacity = capacity
+        self.buffer = []
+        self.priorities = np.zeros((capacity,), dtype=np.float32)
+        self.alpha = alpha
+        self.pos = 0
+
+    def add(self, transition, td_error):
+        max_priority = max(self.priorities.max(), td_error + 1e-5) if self.buffer else 1.0
+        if len(self.buffer) < self.capacity:
+            self.buffer.append(transition)
+        else:
+            self.buffer[self.pos] = transition
+        self.priorities[self.pos] = max_priority
+        self.pos = (self.pos + 1) % self.capacity
+
+    def sample(self, batch_size, beta=0.4):
+        if len(self.buffer) == self.capacity:
+            prios = self.priorities
+        else:
+            prios = self.priorities[:self.pos]
+        probs = prios ** self.alpha
+        probs /= probs.sum()
+
+        indices = np.random.choice(len(self.buffer), batch_size, p=probs)
+        samples = [self.buffer[i] for i in indices]
+
+        total = len(self.buffer)
+        weights = (total * probs[indices]) ** (-beta)
+        weights /= weights.max()
+
+        return samples, indices, weights
+
+    def update_priorities(self, indices, td_errors):
+        for idx, error in zip(indices, td_errors):
+            self.priorities[idx] = abs(error) + 1e-5
 
 # --- DQN Agent ---
 class DQNAgent:
@@ -47,7 +86,7 @@ class DQNAgent:
         self.target_model.load_state_dict(self.model.state_dict())
         self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
         self.criterion = nn.MSELoss()
-        self.buffer = deque(maxlen=100_000)
+        self.buffer = PrioritizedReplayBuffer(capacity=100_000)
         self.gamma = gamma
         self.epsilon = epsilon
         self.epsilon_min = epsilon_min
@@ -62,14 +101,24 @@ class DQNAgent:
             q_vals = self.model(torch.tensor(state_vec, dtype=torch.float32))
             return torch.argmax(q_vals).item()
 
-    def remember(self, state, action, reward, next_state, done):
-        self.buffer.append((state, action, reward, next_state, done))
+    # def remember(self, state, action, reward, next_state, done):
+    #     self.buffer.append((state, action, reward, next_state, done))
 
-    def update_model(self, batch_size=32):
-        if len(self.buffer) < batch_size:
+    def remember(self, state, action, reward, next_state, done):
+        # Estimate TD error for prioritization
+        with torch.no_grad():
+            q_val = self.model(torch.tensor(state, dtype=torch.float32))[action].item()
+            next_q = self.target_model(torch.tensor(next_state, dtype=torch.float32)).max().item()
+            target = reward if done else reward + self.gamma * next_q
+            td_error = abs(q_val - target)
+
+        self.buffer.add((state, action, reward, next_state, done), td_error)
+
+    def update_model(self, batch_size=32, beta=0.4):
+        if len(self.buffer.buffer) < batch_size:
             return
 
-        batch = random.sample(self.buffer, batch_size)
+        batch, indices, weights = self.buffer.sample(batch_size, beta)
         states, actions, rewards, next_states, dones = zip(*batch)
 
         states = torch.tensor(states, dtype=torch.float32)
@@ -77,22 +126,27 @@ class DQNAgent:
         rewards = torch.tensor(rewards, dtype=torch.float32)
         next_states = torch.tensor(next_states, dtype=torch.float32)
         dones = torch.tensor(dones, dtype=torch.float32)
+        weights = torch.tensor(weights, dtype=torch.float32)
 
         q_values = self.model(states).gather(1, actions).squeeze(1)
         next_q = self.target_model(next_states).max(1)[0]
         target_q = rewards + self.gamma * next_q * (1 - dones)
 
-        loss = self.criterion(q_values, target_q.detach())
+        loss = (self.criterion(q_values, target_q.detach()) * weights).mean()
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
+        # Update priorities
+        td_errors = (q_values - target_q.detach()).abs().detach().numpy()
+        self.buffer.update_priorities(indices, td_errors)
+
         # Epsilon decay
         self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
 
-        # Soft update (optional): every N steps, update target network
+        # Soft update
         self.steps += 1
-        if self.steps % 100 == 0:
+        if self.steps % 1000 == 0:
             self.target_model.load_state_dict(self.model.state_dict())
 
 # --- Utility to encode the game state into a vector ---

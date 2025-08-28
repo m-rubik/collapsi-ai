@@ -21,8 +21,8 @@ DIRECTIONS = [(-1,0), (1,0), (0,-1), (0,1)]  # up, down, left, right
 NUMBER_OF_PLAYERS = 2
 
 PRINT_VERBOSE = False
-NUM_ROUNDS = 300000
-LOAD_DQN_MODEL = True
+NUM_ROUNDS = 50000
+LOAD_DQN_MODEL = False
 SAVE_DQN_MODEL = True
 DQN_MODEL_NAME = "collapsi_model.pth"
 AGENT_EXPLORING = True
