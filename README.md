@@ -4,8 +4,7 @@ This project is a fan-made adaptation of the [*Collapsi*](https://riffleshufflea
 
 ## About Collapsi
 From the [Riffle Shuffle & Roll](https://riffleshuffleandroll.itch.io/collapsi) website:
-> Collaspsi is an abstract strategy maze game for two (or more?) players.  As players move around the grid, the card they move from collapses, causing the grid to slowly close in on itself.  Use portals and cave-ins to your advantage. Trap your opponent and be the last player able to make a legal move to win the game.
-*Burgle Bros.* is a cooperative heist game where players work together to break into a building, collect loot, and escape without getting caught. The game involves strategy, planning, and a bit of luck.
+> Collapsi is an abstract strategy maze game for two (or more?) players.  As players move around the grid, the card they move from collapses, causing the grid to slowly close in on itself.  Use portals and cave-ins to your advantage. Trap your opponent and be the last player able to make a legal move to win the game.
 
 ## Purpose of This Project
 
