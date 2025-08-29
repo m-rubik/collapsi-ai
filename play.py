@@ -10,14 +10,15 @@ from collapsi.utilities.vprint import vprint
 if __name__ == "__main__":
     random_wins = 0
     bot_wins = 0
-    for i in range(1000):
+    for i in range(10):
         print("Playing game", i)
         game = GameState(num_players=2)
         game.players[0].name = 'P1'
         game.players[1].name = 'P2'
 
         vprint("Initial board:")
-        game.print_board()
+        if PRINT_VERBOSE:
+            game.print_board()
 
         while not game.is_terminal:
             # ---- Human move ----
@@ -31,13 +32,11 @@ if __name__ == "__main__":
 
             game.make_move(game.current_player, move)
             game.next_player()
-            game.print_board()
+            if PRINT_VERBOSE:
+                game.print_board()
             if game.is_terminal:
-                vprint("Game over! Human wins!" if game.current_player.name != "P1" else "Bot wins!")
-                if game.current_player.name != "P1":
-                    random_wins += 1
-                else:
-                    bot_wins += 1
+                vprint("Game over! Human wins!")
+                random_wins += 1
                 break
 
             # ---- Bot move ----
@@ -57,16 +56,13 @@ if __name__ == "__main__":
 
             game.make_move(game.current_player, bot_move)
             game.next_player()
-            game.print_board()
+            if PRINT_VERBOSE:
+                game.print_board()
 
             memo = {}
             if game.is_terminal:
-                vprint("Game over! Bot wins!" if game.current_player.name == "P1" else "Human wins!")
-                if game.current_player.name == "P1":
-                    random_wins += 1
-                else:
-                    bot_wins += 1
+                vprint("Game over! Bot wins!")
+                bot_wins += 1
                 break
 
-    print(random_wins)
-    print(bot_wins)
+    print("RANDOM-BOT WINS: {}, SOLVER-BOT WINS: {}".format(random_wins, bot_wins))
