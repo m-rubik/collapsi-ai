@@ -11,6 +11,16 @@ class GameState:
         self.board = self.create_board()
         self.players = self.init_players(num_players)
         self.current_index = 0  # whose turn it is
+    
+    @property
+    def current_player(self):
+        return self.players[self.current_index]
+
+    @property
+    def is_terminal(self):
+        if self.get_current_player_moves():
+            return False
+        return True 
 
     def create_board(self):
         cards = deepcopy(CARD_VALUES)
@@ -35,9 +45,12 @@ class GameState:
                 r, c = player.position
                 board_copy[r][c] = player.name + ' '
         for row in board_copy:
-            vprint(" ".join(row))
+            print(" ".join(row))
 
-    def get_player_moves(self, player):
+    def get_current_player_moves(self) -> list:
+        return self.get_player_moves(self.current_player)
+    
+    def get_player_moves(self, player) -> list:
         r, c = player.position
         card = self.board[r][c]
         vprint(f"Player is on tile {card}")
@@ -105,7 +118,8 @@ class GameState:
 
     def play_game(self):
         while True:
-            self.print_board()
+            if PRINT_VERBOSE:
+                self.print_board()
             if not self.play_turn():
                 break
 
