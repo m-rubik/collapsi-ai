@@ -21,4 +21,4 @@ tweak settings in configs.py
 
 ## Operation
 
-python main.py
+python play_human_vs_bot_graphical.py
