@@ -141,7 +141,7 @@ Then, I can write a bot that on each one of its turns will either:
     - Deep copies ensure the original game state remains unmodified during recursive simulations.
     - Storing all winning moves allows the bot to choose randomly among them for variety.
 
-#### Findings
+## Final Findings
 
 - If you have two CSB's playing each other, the one that starts the game first has only ~33% win rate. If there were no starting bias, we would expect an even 50% win split. This indicates the game itself has a built-in bias in favour of the player who plays second, that can be leveraged assuming each player is able to play perfectly.
 - Against a random bot, the CSB wins 96.3% (tested on 1000 games). This indicates that there is deep strategy *available* within the game. If the design of the game itself innately limited strategical depth, we would not be seeing win rates pushing 95%.
