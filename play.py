@@ -1,10 +1,8 @@
-from copy import deepcopy
+import random
 from collapsi.configs.configs import *
-from collapsi.modules.agent import *
 from collapsi.modules.game import *
 from collapsi.utilities.solver import *
 from collapsi.utilities.vprint import vprint
-import random
 
 # --------------------------
 # Interactive play
@@ -19,20 +17,21 @@ if __name__ == "__main__":
         game.players[1].name = 'P2'
 
         vprint("Initial board:")
-        # game.print_board()
+        game.print_board()
 
         while not game.is_terminal:
             # ---- Human move ----
             vprint("Your move options:", game.get_current_player_moves())
 
-            # move = input("Enter your move: ")  # You may need to adapt input format
-            # move = eval(move)  # if moves are tuples, e.g., (row, col)
+            move = input("Enter your move: ")  # You may need to adapt input format
+            move = eval(move)  # if moves are tuples, e.g., (row, col)
 
             # TAKE A RANDOM MOVE
-            move = random.choice(game.get_current_player_moves())
+            # move = random.choice(game.get_current_player_moves())
+
             game.make_move(game.current_player, move)
             game.next_player()
-            # game.print_board()
+            game.print_board()
             if game.is_terminal:
                 vprint("Game over! Human wins!" if game.current_player.name != "P1" else "Bot wins!")
                 if game.current_player.name != "P1":
@@ -58,7 +57,7 @@ if __name__ == "__main__":
 
             game.make_move(game.current_player, bot_move)
             game.next_player()
-            # game.print_board()
+            game.print_board()
 
             memo = {}
             if game.is_terminal:

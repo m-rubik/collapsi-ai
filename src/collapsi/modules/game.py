@@ -53,7 +53,7 @@ class GameState:
     def get_player_moves(self, player) -> list:
         r, c = player.position
         card = self.board[r][c]
-        vprint(f"Player is on tile {card}")
+        # vprint(f"Player is on tile {card}")
 
         if card.collapsed:
             return []

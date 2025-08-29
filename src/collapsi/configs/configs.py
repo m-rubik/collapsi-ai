@@ -20,7 +20,7 @@ DIRECTIONS = [(-1,0), (1,0), (0,-1), (0,1)]  # up, down, left, right
 
 NUMBER_OF_PLAYERS = 2
 
-PRINT_VERBOSE = False
+PRINT_VERBOSE = True
 NUM_ROUNDS = 50000
 LOAD_DQN_MODEL = False
 SAVE_DQN_MODEL = True
