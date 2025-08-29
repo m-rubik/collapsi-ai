@@ -143,6 +143,6 @@ Then, I can write a bot that on each one of its turns will either:
 
 #### Findings
 
-- If you have two CSB's playing each other, the one that starts the game first has ~33% win rate, compared to the one that starts second. This indicates the game itself has a built-in bias in favour of the player who plays second, that can be leveraged assuming each player is able to play perfectly.
+- If you have two CSB's playing each other, the one that starts the game first has only ~33% win rate. If there were no starting bias, we would expect an even 50% win split. This indicates the game itself has a built-in bias in favour of the player who plays second, that can be leveraged assuming each player is able to play perfectly.
 - Against a random bot, the CSB wins 96.3% (tested on 1000 games). This indicates that there is deep strategy *available* within the game. If the design of the game itself innately limited strategical depth, we would not be seeing win rates pushing 95%.
 - Against a human (me), the CSB is incredibly challenging, it took me ~25 games before I managed to beat it.
