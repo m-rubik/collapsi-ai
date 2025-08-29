@@ -36,6 +36,11 @@ class GameState:
         players = []
         for i in range(num_players):
             players.append(Player(name=f"P{i+1}", position=jokers[i]))
+
+        for player in players:
+            r, c = player.position
+            self.board[r][c].occupier = player
+
         return players
 
     def print_board(self):
@@ -86,6 +91,8 @@ class GameState:
         r, c = player.position
         self.board[r][c].collapsed = True
         player.position = destination
+        r, c = player.position
+        self.board[r][c].occupier = player
 
     def next_player(self):
         # rotate to next active player
